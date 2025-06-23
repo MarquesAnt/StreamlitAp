@@ -63,10 +63,10 @@ if nom_dossier and date_input:
         st.error(f"❌ Fichier non trouvé : {emissions_path}")
 
 # --------------------------
-# Bloc 2 : Dépenses publiques
+# Bloc 2 : Dépenses publiques (comparatif multi-régions)
 # --------------------------
 st.markdown("---")
-st.header("📉 Dépenses publiques par région")
+st.header("📉 Dépenses publiques comparées entre régions")
 
 regions = ["AURA", "BFC", "BRE", "COR", "CVL", "GRE", "HDF", "IDF", "LNAQ", "LNMD", "OCC", "PACA", "PDL"]
 dossier_input = st.text_area("🗂️ Un dossier par ligne (13 au total)", value="\n".join(regions))
@@ -79,12 +79,26 @@ if st.button("Charger les dépenses publiques"):
     else:
         dfs = charger_depenses_public(regions, dossiers, date_input, solution)
 
-        for df in dfs:
-            region = df["region"].iloc[0]
-            st.subheader(f"📊 Dépenses pour {region}")
-            try:
+        # Vérification et fusion
+        try:
+            # On suppose que toutes les régions ont la même colonne d'années (colonne 0)
+            merged_df = pd.DataFrame()
+            for df in dfs:
+                region = df["region"].iloc[0]
                 year_col = df.columns[0]
-                df_plot = df.set_index(year_col).iloc[:, 1:]
-                st.line_chart(df_plot)
-            except Exception as e:
-                st.error(f"Erreur dans l'affichage du graphe pour {region} : {e}")
+                value_col = df.columns[1]  # On prend la 2e colonne (ex: "Dépenses")
+                df_region = df[[year_col, value_col]].copy()
+                df_region.columns = ["Année", region]
+                if merged_df.empty:
+                    merged_df = df_region
+                else:
+                    merged_df = pd.merge(merged_df, df_region, on="Année", how="outer")
+
+            merged_df = merged_df.sort_values("Année")
+            merged_df = merged_df.set_index("Année")
+
+            st.subheader("📊 Dépenses publiques par région (comparées)")
+            st.line_chart(merged_df)
+
+        except Exception as e:
+            st.error(f"Erreur lors du traitement des données fusionnées : {e}")
