@@ -41,3 +41,13 @@ def plot_depenses_region_plotly(region, df_budget, df_dep, df_lin, df_energie):
 
     return fig
 
+for i, region in enumerate(regions):
+    fig = plot_depenses_region_plotly(
+        region,
+        dfs_public[i],
+        dfs_menages[i],
+        dfs_menages_lin[i],
+        dfs_energie[i]
+    )
+    with st.expander(f"📍 {region}"):
+        st.plotly_chart(fig, use_container_width=True)
